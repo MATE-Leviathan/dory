@@ -1,4 +1,4 @@
 (fp_lib_table
 	(version 7)
-	(lib (name "TPSM863252RDXR") (type "KiCad") (uri "/Users/evank/Downloads/ul_TPSM863252RDXR/KiCADv6/footprints.pretty") (options "") (descr ""))
+	(lib (name "TPSM863252RDXR") (type "KiCad") (uri "/Users/evank/Downloads/TPSM863252RDXR/footprints.pretty") (options "") (descr ""))
 )
