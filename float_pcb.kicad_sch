@@ -5774,12 +5774,6 @@
 		(uuid "1f7b64d4-3b3e-4845-8ac6-43de135c4456")
 	)
 	(junction
-		(at 237.49 102.87)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "218d6c79-af7b-4687-80f8-64a59a28b8e5")
-	)
-	(junction
 		(at 181.61 25.4)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5888,12 +5882,6 @@
 		(uuid "5e75331e-0a1f-4fe6-824f-8b2630bdb65f")
 	)
 	(junction
-		(at 237.49 119.38)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "63c7acf7-6ce1-4b1e-b966-cfe47db0fc07")
-	)
-	(junction
 		(at 16.51 22.86)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5966,6 +5954,12 @@
 		(uuid "8ad85ec1-7833-4508-936b-0b12e9bf8e74")
 	)
 	(junction
+		(at 237.49 102.87)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8e26fd43-a105-4f42-ab8b-11ba043457b8")
+	)
+	(junction
 		(at 162.56 77.47)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6012,6 +6006,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "a6c19598-6f8e-4db7-956c-b1215b16e817")
+	)
+	(junction
+		(at 237.49 119.38)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a7c33521-c63d-4fb4-93d4-0ea037b36df3")
 	)
 	(junction
 		(at 116.84 77.47)
@@ -7013,16 +7013,6 @@
 	)
 	(wire
 		(pts
-			(xy 237.49 102.87) (xy 245.11 102.87)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "6c3a7e81-4bf6-4382-b738-b32d3e2443a5")
-	)
-	(wire
-		(pts
 			(xy 260.35 111.76) (xy 260.35 110.49)
 		)
 		(stroke
@@ -7423,6 +7413,16 @@
 	)
 	(wire
 		(pts
+			(xy 237.49 102.87) (xy 245.11 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a8bcd023-44b9-4493-848d-a95bd0aa677f")
+	)
+	(wire
+		(pts
 			(xy 113.03 146.05) (xy 120.65 146.05)
 		)
 		(stroke
@@ -7640,16 +7640,6 @@
 			(type default)
 		)
 		(uuid "d026f878-ab33-4007-948c-2ef709ad7c48")
-	)
-	(wire
-		(pts
-			(xy 237.49 119.38) (xy 261.62 119.38)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d04791f7-3668-4169-99ca-34be71ee8e23")
 	)
 	(wire
 		(pts
@@ -7950,6 +7940,16 @@
 			(type default)
 		)
 		(uuid "fa5f3d2f-84db-4b91-86e2-78cd2b2b2518")
+	)
+	(wire
+		(pts
+			(xy 237.49 119.38) (xy 261.62 119.38)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fc952856-98b7-4dc4-abf8-68165aa4abd2")
 	)
 	(wire
 		(pts
@@ -9628,7 +9628,7 @@
 				)
 			)
 		)
-		(property "Value" "OPT"
+		(property "Value" "TBD"
 			(at 186.69 130.81 90)
 			(show_name no)
 			(do_not_autoplace no)

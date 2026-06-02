@@ -1,0 +1,5 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "Buzzer") (type "KiCad") (uri "${KIPRJMOD}/external/AT_1127_ST_2_R/AT-1127-ST-2-R.kicad_sym") (options "") (descr ""))
+	(lib (name "Mosfet") (type "KiCad") (uri "${KIPRJMOD}/external/SI4435FDY_T1_GE3/KiCADv6") (options "") (descr ""))
+)

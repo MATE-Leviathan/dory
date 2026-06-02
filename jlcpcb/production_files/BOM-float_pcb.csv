@@ -56,3 +56,17 @@ GND,TP3,TestPoint_Pad_D1.5mm,,1
 3V3,TP2,TestPoint_Pad_D1.5mm,,1
 5V,TP1,TestPoint_Pad_D1.5mm,,1
 USBLC6-2SC6,U3,SOT-23-6,,1
+USBLC6-4SC6,U5,SOT-23-6,,1
+USBLC6-4SC6,U6,SOT-23-6,,1
+TBD,R26,R_0603_1608Metric,,1
+10k,R25,R_0603_1608Metric,,1
+10k,R24,R_0603_1608Metric,,1
+10k,R23,R_0603_1608Metric,,1
+10k,R22,R_0603_1608Metric,,1
+0,R21,R_0603_1608Metric,,1
+EN,TP10,TestPoint_Pad_D1.5mm,,1
+SDA2,TP6,TestPoint_Pad_D1.5mm,,1
+BOOT,TP9,TestPoint_Pad_D1.5mm,,1
+SCL2,TP5,TestPoint_Pad_D1.5mm,,1
+SDA2,TP7,TestPoint_Pad_D1.5mm,,1
+SCL1,TP8,TestPoint_Pad_D1.5mm,,1
