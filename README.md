@@ -1,4 +1,4 @@
-# Float PCB
+# Dory
 
 ![Dory project logo](images/ChatGPT%20Image%20May%2029,%202026,%2011_48_04%20PM.png)
 
