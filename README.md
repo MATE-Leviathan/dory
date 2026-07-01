@@ -77,6 +77,11 @@ Before ordering, re-open the project in KiCad, refill zones, run DRC/ERC, and re
 
 For component ordering, use `digikey/order.csv` as the DigiKey order file.
 
+## Known issues
+
+- One of the I2C ports is about 0.025 mm off in the Z direction. This is only for people with OCD like me; it should not matter for normal assembly.
+- The fancy QFN buck converter packages are hard to solder by hand. If you want to build this board, make sure you have solder paste, reflow, and patience, or redesign that power stage around something friendlier like a SOT-23 package.
+
 ## Development notes
 
 - Designed in KiCad.
