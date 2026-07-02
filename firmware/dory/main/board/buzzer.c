@@ -2,12 +2,15 @@
 
 #include "driver/ledc.h"
 #include "esp_err.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include "board_pins.h"
 
 #define ARRAY_LEN(x) (sizeof(x) / sizeof((x)[0]))
+
+static const char *TAG = "buzzer";
 
 static const int samsung_boot[][2] = {
     {988, 180},
@@ -58,6 +61,7 @@ void buzzer_init(void)
     };
     ESP_ERROR_CHECK(ledc_channel_config(&channel));
     buzzer_off();
+    ESP_LOGI(TAG, "Buzzer initialized");
 }
 
 void buzzer_off(void)
@@ -68,16 +72,12 @@ void buzzer_off(void)
 
 void buzzer_tone(int hz)
 {
+    ESP_LOGI(TAG, "Buzzer tone: %d Hz", hz);
     ESP_ERROR_CHECK(ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, hz));
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 512));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
 }
 
-
-static void buzzer_delay_ms(int ms)
-{
-    vTaskDelay(pdMS_TO_TICKS(ms));
-}
 
 static void buzzer_play_pattern(const int pattern[][2], int length)
 {
@@ -91,7 +91,7 @@ static void buzzer_play_pattern(const int pattern[][2], int length)
             buzzer_off();
         }
 
-        buzzer_delay_ms(duration_ms);
+        vTaskDelay(pdMS_TO_TICKS(duration_ms));
     }
 
     buzzer_off();
@@ -99,11 +99,13 @@ static void buzzer_play_pattern(const int pattern[][2], int length)
 
 void buzzer_play_samsung_boot(void)
 {
+    ESP_LOGI(TAG, "Playing Samsung boot pattern");
     buzzer_play_pattern(samsung_boot, ARRAY_LEN(samsung_boot));
 }
 
 void buzzer_play_starting_beeps(void)
 {
+    ESP_LOGI(TAG, "Playing starting beeps");
     buzzer_play_pattern(starting_beeps, ARRAY_LEN(starting_beeps));
 }
 
@@ -122,7 +124,8 @@ void buzzer_start_leak_alarm(void)
         return;
     }
 
-    xTaskCreate(leak_alarm_task, "leak_alarm", 512, NULL, 5, &leak_alarm_task_handle);
+    xTaskCreate(leak_alarm_task, "leak_alarm", 2048, NULL, 5, &leak_alarm_task_handle);
+    ESP_LOGI(TAG, "Leak alarm started");
 }
 
 void buzzer_stop_leak_alarm(void)
@@ -135,4 +138,5 @@ void buzzer_stop_leak_alarm(void)
     leak_alarm_task_handle = NULL;
 
     buzzer_off();
+    ESP_LOGI(TAG, "Leak alarm stopped");
 }

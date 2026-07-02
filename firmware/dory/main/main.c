@@ -1,15 +1,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
+#include "nvs_flash.h"
 
 #include "board/battery.h"
 #include "board/servo.h"
 #include "board/buzzer.h"
 #include "board/light.h"
+#include "com.h"
 #include "debug_serial.h"
-#include "nvs_flash.h"
-
-void init_com(void);
 
 void app_main(void)
 {
@@ -33,6 +32,8 @@ void app_main(void)
 
     init_com();
 #endif
+
+    buzzer_play_samsung_boot();
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));

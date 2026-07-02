@@ -12,4 +12,12 @@ config DORY_WIRELESS
     help
         Enables using ESPNOW to communicate and send commands
 
+config DORY_ESPNOW_BASE_MAC
+    string "Base station MAC address"
+    depends on DORY_WIRELESS
+    default "00:00:00:00:00:00"
+    help
+        MAC address of the base station allowed to send ESP-NOW packets.
+        Use aa:bb:cc:dd:ee:ff format.
+
 endmenu

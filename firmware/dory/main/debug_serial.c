@@ -39,6 +39,15 @@ static void debug_serial_task(void *arg)
     while (1) {
         int command = getchar();
 
+        if (command == EOF) {
+            vTaskDelay(pdMS_TO_TICKS(20));
+            continue;
+        }
+
+        if (command == '\r' || command == '\n') {
+            continue;
+        }
+
         switch (command) {
         case 'h':
         case '?':
@@ -87,5 +96,5 @@ static void debug_serial_task(void *arg)
 
 void debug_serial_start(void)
 {
-    xTaskCreate(debug_serial_task, "debug_serial", 512, NULL, 5, NULL);
+    xTaskCreate(debug_serial_task, "debug_serial", 4096, NULL, 5, NULL);
 }
