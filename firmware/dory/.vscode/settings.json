@@ -1,11 +1,17 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
   "idf.extensionActivationMode": "always",
-  "clangd.path": "/home/evank/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.path": "/Users/evank/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=/home/evank/code/kicad/dory/firmware/.vscode/dory/build"
+    "--compile-commands-dir=/Users/evank/code/robotics/dory/firmware/dory/build"
   ],
-  "idf.currentSetup": "/home/evank/.espressif/v6.0.1/esp-idf"
+  "idf.currentSetup": "/Users/evank/.espressif/v6.0.2/esp-idf",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ]
 }

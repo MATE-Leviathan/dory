@@ -9,4 +9,5 @@
 #define LIGHT_PIN GPIO_NUM_9
 #define BUZZER_PIN GPIO_NUM_48
 
+// 220k and 100k voltage divider
 #define BATT_DIVIDER_MULTIPLIER 3.2f

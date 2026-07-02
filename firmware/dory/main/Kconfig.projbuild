@@ -1,0 +1,15 @@
+menu "Dory"
+
+config DORY_DEBUG_SERIAL
+    bool "Enable serial debug commands"
+    default n
+    help
+        Enables the serial command task for manually testing board functions.
+
+config DORY_WIRELESS
+    bool "Enable wireless ESPNOW commands"
+    default y
+    help
+        Enables using ESPNOW to communicate and send commands
+
+endmenu
