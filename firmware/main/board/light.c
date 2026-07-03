@@ -7,6 +7,7 @@
 #include "board_pins.h"
 
 static const char *TAG = "light";
+static bool s_light_on;
 
 void light_init(void)
 {
@@ -18,5 +19,11 @@ void light_init(void)
 void light_set(bool on)
 {
     gpio_set_level(LIGHT_PIN, on);
+    s_light_on = on;
     ESP_LOGI(TAG, "Light %s", on ? "on" : "off");
+}
+
+bool light_is_on(void)
+{
+    return s_light_on;
 }

@@ -11,6 +11,7 @@ typedef enum {
     DORY_MSG_COMMAND = 1,
     DORY_MSG_MISSION = 2,
     DORY_MSG_RESULT = 3,
+    DORY_MSG_STATE = 4,
 } com_msg_type_t;
 
 typedef enum {
@@ -51,6 +52,16 @@ typedef struct __attribute__((packed)) {
     uint16_t sample_count;
     depth_sample_t samples[DORY_MAX_DEPTH_SAMPLES];
 } result_payload_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t connected;
+    uint8_t battery_percent;
+    int32_t depth_mm;
+    uint8_t servo_power;
+    int32_t servo_us;
+    uint8_t light_on;
+    uint8_t leak_alarm_on;
+} state_payload_t;
 
 void init_com(void);
 bool send_result(const result_payload_t *result);

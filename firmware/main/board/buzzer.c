@@ -1,5 +1,7 @@
 #include "buzzer.h"
 
+#include <stdbool.h>
+
 #include "driver/ledc.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -41,6 +43,7 @@ static const int leak_alarm[][2] = {
 };
 
 static TaskHandle_t leak_alarm_task_handle = NULL;
+static bool s_leak_alarm_on;
 
 void buzzer_init(void)
 {
@@ -125,6 +128,7 @@ void buzzer_start_leak_alarm(void)
     }
 
     xTaskCreate(leak_alarm_task, "leak_alarm", 2048, NULL, 5, &leak_alarm_task_handle);
+    s_leak_alarm_on = true;
     ESP_LOGI(TAG, "Leak alarm started");
 }
 
@@ -136,7 +140,13 @@ void buzzer_stop_leak_alarm(void)
 
     vTaskDelete(leak_alarm_task_handle);
     leak_alarm_task_handle = NULL;
+    s_leak_alarm_on = false;
 
     buzzer_off();
     ESP_LOGI(TAG, "Leak alarm stopped");
+}
+
+bool buzzer_leak_alarm_is_on(void)
+{
+    return s_leak_alarm_on;
 }

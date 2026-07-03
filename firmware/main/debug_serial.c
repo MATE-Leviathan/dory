@@ -30,9 +30,6 @@ static void debug_serial_task(void *arg)
 {
     (void) arg;
 
-    bool light_on = false;
-    bool power_on = false;
-
     printf("\nDory debug serial enabled\n");
     debug_serial_print_help();
 
@@ -57,15 +54,19 @@ static void debug_serial_task(void *arg)
             printf("Battery: %.2f V\n", battery_voltage_read());
             break;
         case 'l':
-            light_on = !light_on;
+        {
+            bool light_on = !light_is_on();
             light_set(light_on);
             printf("Light: %s\n", light_on ? "on" : "off");
             break;
+        }
         case 'p':
-            power_on = !power_on;
+        {
+            bool power_on = !servo_power_is_on();
             set_power(power_on);
             printf("Servo 5V power: %s\n", power_on ? "on" : "off");
             break;
+        }
         case 'z':
             buzzer_tone(4000);
             printf("Buzzer tone on\n");

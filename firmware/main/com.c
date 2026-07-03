@@ -40,6 +40,8 @@ typedef struct {
     uint8_t payload[DORY_MAX_PAYLOAD_LEN];
 } packet_t;
 
+static bool send_state(void);
+
 static uint8_t from_hex_char(char c)
 {
     if (c >= '0' && c <= '9') {
@@ -139,33 +141,33 @@ static bool parse_packet(const uint8_t *data, int len, packet_t *packet)
     return true;
 }
 
-static void handle_command(const command_payload_t *command)
+static bool handle_command(const command_payload_t *command)
 {
     switch ((com_command_t)command->command) {
     case DORY_CMD_SERVO_POWER:
         set_power(command->arg0 != 0);
-        break;
+        return true;
     case DORY_CMD_LIGHT_SET:
         light_set(command->arg0 != 0);
-        break;
+        return true;
     case DORY_CMD_BUZZER_TONE:
         if (command->arg0 > 0) {
             buzzer_tone(command->arg0);
         }
-        break;
+        return true;
     case DORY_CMD_BUZZER_OFF:
         buzzer_off();
-        break;
+        return true;
     case DORY_CMD_BUZZER_LEAK_ALARM:
         if (command->arg0 != 0) {
             buzzer_start_leak_alarm();
         } else {
             buzzer_stop_leak_alarm();
         }
-        break;
+        return true;
     default:
         ESP_LOGW(TAG, "Unknown command: %u", command->command);
-        break;
+        return false;
     }
 }
 
@@ -187,7 +189,9 @@ static void handle_packet(const packet_t *packet)
         memcpy(&command, packet->payload, sizeof(command));
         ESP_LOGI(TAG, "Received command: command=%u arg0=%ld arg1=%ld",
                  command.command, (long)command.arg0, (long)command.arg1);
-        handle_command(&command);
+        if (handle_command(&command)) {
+            send_state();
+        }
         break;
     }
     case DORY_MSG_MISSION:
@@ -273,6 +277,37 @@ static bool ensure_base_peer(void)
     peer.encrypt = false;
 
     return esp_now_add_peer(&peer) == ESP_OK;
+}
+
+static bool send_state(void)
+{
+    state_payload_t state = {
+        .connected = 1,
+        .battery_percent = 0,
+        .depth_mm = 0,
+        .servo_power = servo_power_is_on(),
+        .servo_us = 0,
+        .light_on = light_is_on(),
+        .leak_alarm_on = buzzer_leak_alarm_is_on(),
+    };
+    uint8_t data[sizeof(packet_header_t) + sizeof(state) + sizeof(uint16_t)];
+    packet_header_t header = {
+        .version = DORY_PACKET_VERSION,
+        .type = DORY_MSG_STATE,
+        .payload_len = sizeof(state),
+    };
+    uint16_t crc;
+
+    if (!ensure_base_peer()) {
+        return false;
+    }
+
+    memcpy(data, &header, sizeof(header));
+    memcpy(data + sizeof(header), &state, sizeof(state));
+    crc = esp_crc16_le(0, data, sizeof(header) + sizeof(state));
+    memcpy(data + sizeof(header) + sizeof(state), &crc, sizeof(crc));
+
+    return esp_now_send(s_base_mac, data, sizeof(data)) == ESP_OK;
 }
 
 bool send_result(const result_payload_t *result)
