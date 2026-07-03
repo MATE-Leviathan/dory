@@ -33,7 +33,9 @@ void app_main(void)
     init_com();
 #endif
 
+    light_set(true);
     buzzer_play_samsung_boot();
+    light_set(false);
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));

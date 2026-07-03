@@ -25,9 +25,7 @@ typedef struct __attribute__((packed)) {
     uint8_t version;
     uint8_t type;
     uint16_t payload_len;
-    uint8_t payload[DORY_MAX_PAYLOAD_LEN];
-    uint16_t crc;
-} com_packet_t;
+} packet_header_t;
 
 typedef struct __attribute__((packed)) {
     uint8_t command;

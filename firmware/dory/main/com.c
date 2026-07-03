@@ -35,6 +35,11 @@ typedef struct {
     int data_len;
 } espnow_event_t;
 
+typedef struct {
+    packet_header_t header;
+    uint8_t payload[DORY_MAX_PAYLOAD_LEN];
+} packet_t;
+
 static uint8_t from_hex_char(char c)
 {
     if (c >= '0' && c <= '9') {
@@ -93,32 +98,44 @@ static void espnow_recv_cb(const esp_now_recv_info_t *recv_info, const uint8_t *
     }
 }
 
-static bool parse_packet(const uint8_t *data, int len, com_packet_t *packet)
+static bool parse_packet(const uint8_t *data, int len, packet_t *packet)
 {
+    uint16_t payload_len;
     uint16_t crc;
     uint16_t crc_cal;
+    size_t crc_offset;
+    size_t packet_len;
 
-    if (data == NULL || packet == NULL || len != sizeof(com_packet_t)) {
+    if (data == NULL || packet == NULL || len < sizeof(packet_header_t) + sizeof(uint16_t)) {
         return false;
     }
 
-    memcpy(packet, data, sizeof(com_packet_t));
+    memcpy(&packet->header, data, sizeof(packet->header));
+    payload_len = packet->header.payload_len;
 
-    if (packet->version != DORY_PACKET_VERSION ||
-        (packet->type != DORY_MSG_COMMAND &&
-         packet->type != DORY_MSG_MISSION)) {
+    if (packet->header.version != DORY_PACKET_VERSION ||
+        (packet->header.type != DORY_MSG_COMMAND &&
+         packet->header.type != DORY_MSG_MISSION) ||
+        payload_len > DORY_MAX_PAYLOAD_LEN) {
         return false;
     }
 
-    crc = packet->crc;
-    packet->crc = 0;
-    crc_cal = esp_crc16_le(0, (const uint8_t *)packet, sizeof(com_packet_t));
+    packet_len = sizeof(packet_header_t) + payload_len + sizeof(uint16_t);
+    if ((size_t)len != packet_len) {
+        return false;
+    }
+
+    memcpy(packet->payload, data + sizeof(packet_header_t), payload_len);
+
+    crc_offset = sizeof(packet_header_t) + payload_len;
+    memcpy(&crc, data + crc_offset, sizeof(crc));
+
+    crc_cal = esp_crc16_le(0, data, crc_offset);
 
     if (crc_cal != crc) {
         return false;
     }
 
-    packet->crc = crc;
     return true;
 }
 
@@ -157,14 +174,14 @@ static void handle_mission(const mission_payload_t *mission)
     ESP_LOGI(TAG, "Received mission: steps=%u depth_offset_mm=%d", mission->step_count, mission->depth_offset_mm);
 }
 
-static void handle_packet(const com_packet_t *packet)
+static void handle_packet(const packet_t *packet)
 {
-    switch (packet->type) {
+    switch (packet->header.type) {
     case DORY_MSG_COMMAND:
     {
         command_payload_t command;
-        if (packet->payload_len != sizeof(command)) {
-            ESP_LOGW(TAG, "Invalid command payload len: %u", packet->payload_len);
+        if (packet->header.payload_len != sizeof(command)) {
+            ESP_LOGW(TAG, "Invalid command payload len: %u", packet->header.payload_len);
             return;
         }
         memcpy(&command, packet->payload, sizeof(command));
@@ -176,8 +193,8 @@ static void handle_packet(const com_packet_t *packet)
     case DORY_MSG_MISSION:
     {
         mission_payload_t mission;
-        if (packet->payload_len != sizeof(mission)) {
-            ESP_LOGW(TAG, "Invalid mission payload len: %u", packet->payload_len);
+        if (packet->header.payload_len != sizeof(mission)) {
+            ESP_LOGW(TAG, "Invalid mission payload len: %u", packet->header.payload_len);
             return;
         }
         memcpy(&mission, packet->payload, sizeof(mission));
@@ -185,7 +202,7 @@ static void handle_packet(const com_packet_t *packet)
         break;
     }
     default:
-        ESP_LOGW(TAG, "Unknown message type: %u", packet->type);
+        ESP_LOGW(TAG, "Unknown message type: %u", packet->header.type);
         break;
     }
 }
@@ -193,7 +210,7 @@ static void handle_packet(const com_packet_t *packet)
 static void com_task(void *arg)
 {
     espnow_event_t evt;
-    com_packet_t packet;
+    packet_t packet;
 
     (void)arg;
 
@@ -260,18 +277,22 @@ static bool ensure_base_peer(void)
 
 bool send_result(const result_payload_t *result)
 {
-    com_packet_t packet;
+    uint8_t data[sizeof(packet_header_t) + sizeof(*result) + sizeof(uint16_t)];
+    packet_header_t header = {
+        .version = DORY_PACKET_VERSION,
+        .type = DORY_MSG_RESULT,
+        .payload_len = sizeof(*result),
+    };
+    uint16_t crc;
 
     if (result == NULL || result->sample_count > DORY_MAX_DEPTH_SAMPLES || !ensure_base_peer()) {
         return false;
     }
 
-    memset(&packet, 0, sizeof(packet));
-    packet.version = DORY_PACKET_VERSION;
-    packet.type = DORY_MSG_RESULT;
-    packet.payload_len = sizeof(*result);
-    memcpy(packet.payload, result, sizeof(*result));
-    packet.crc = esp_crc16_le(0, (const uint8_t *)&packet, sizeof(packet));
+    memcpy(data, &header, sizeof(header));
+    memcpy(data + sizeof(header), result, sizeof(*result));
+    crc = esp_crc16_le(0, data, sizeof(header) + sizeof(*result));
+    memcpy(data + sizeof(header) + sizeof(*result), &crc, sizeof(crc));
 
-    return esp_now_send(s_base_mac, (const uint8_t *)&packet, sizeof(packet)) == ESP_OK;
+    return esp_now_send(s_base_mac, data, sizeof(data)) == ESP_OK;
 }

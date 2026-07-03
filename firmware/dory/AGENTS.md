@@ -46,17 +46,21 @@ Communication files:
 - `main/com.h`
 - `main/com.c`
 
-`com.c` uses ESP-NOW with the Espressif callback -> queue -> task pattern. The receive callback only validates/copies incoming bytes and pushes them to a FreeRTOS queue. The `dory_com_task` parses and handles packets later.
+`com.c` uses ESP-NOW with the Espressif callback -> queue -> task pattern. The receive callback only validates/copies incoming bytes and pushes them to a FreeRTOS queue. The `com_task` parses and handles packets later.
+
+`main/CMakeLists.txt` only builds optional source files when enabled:
+
+- `debug_serial.c` is appended only when `CONFIG_DORY_DEBUG_SERIAL` is enabled.
+- `com.c` is appended only when `CONFIG_DORY_WIRELESS` is enabled.
 
 ## Current Protocol
 
-The protocol was refactored to use ESP-NOW v2-sized packets.
+The protocol uses dynamically sized ESP-NOW packets. It does not send the whole 1400-byte payload buffer for small commands.
 
 Public protocol definitions are in `main/com.h`:
 
 - `DORY_PACKET_VERSION`
 - `DORY_MAX_PAYLOAD_LEN = 1400`
-- `DORY_MAX_MISSION_STEPS = 64`
 - `DORY_MAX_DEPTH_SAMPLES = 300`
 
 Message types:
@@ -65,26 +69,42 @@ Message types:
 - `DORY_MSG_MISSION`
 - `DORY_MSG_RESULT`
 
-Packet wrapper:
+Wire format:
+
+```
+packet_header_t header
+payload_len bytes of payload
+uint16_t crc
+```
+
+`packet_header_t` is:
 
 ```c
 typedef struct __attribute__((packed)) {
     uint8_t version;
     uint8_t type;
-    uint16_t seq;
     uint16_t payload_len;
-    uint8_t payload[DORY_MAX_PAYLOAD_LEN];
-    uint16_t crc;
-} dory_packet_t;
+} packet_header_t;
 ```
 
-Current implementation sends/parses the whole fixed-size `dory_packet_t` wrapper. This is intentionally simple and fits under `ESP_NOW_MAX_DATA_LEN_V2` (`1470` bytes in the local ESP-IDF header).
+CRC is calculated over `header + payload` only. The CRC is appended after the payload and is not included in its own calculation.
+
+`com.c` uses a private parsed packet type with a max-size payload buffer:
+
+```c
+typedef struct {
+    packet_header_t header;
+    uint8_t payload[DORY_MAX_PAYLOAD_LEN];
+} packet_t;
+```
+
+This private `packet_t` is not the wire format. It is only Dory's parsed receive buffer.
 
 Payloads:
 
-- `dory_command_payload_t`
-- `dory_mission_payload_t`
-- `dory_result_payload_t`
+- `command_payload_t`
+- `mission_payload_t`
+- `result_payload_t`
 
 Manual command payloads still support the old manual controls:
 
@@ -98,7 +118,6 @@ Mission payload currently stores:
 
 - `step_count`
 - `depth_offset_mm`
-- up to 64 steps of `target_depth_mm` + `hold_time_s`
 
 Result payload currently supports:
 
@@ -118,16 +137,7 @@ Current code in `com.c` rejects packets unless:
 memcmp(recv_info->src_addr, s_base_mac, ESP_NOW_ETH_ALEN) == 0
 ```
 
-Current Kconfig state uses six byte values:
-
-- `CONFIG_DORY_ESPNOW_BASE_MAC_0`
-- `CONFIG_DORY_ESPNOW_BASE_MAC_1`
-- `CONFIG_DORY_ESPNOW_BASE_MAC_2`
-- `CONFIG_DORY_ESPNOW_BASE_MAC_3`
-- `CONFIG_DORY_ESPNOW_BASE_MAC_4`
-- `CONFIG_DORY_ESPNOW_BASE_MAC_5`
-
-The user asked whether there is a better way. The better plan is to replace these six fields with a single Kconfig `string`, for example:
+Current Kconfig state uses one string:
 
 ```kconfig
 config DORY_ESPNOW_BASE_MAC
@@ -136,9 +146,15 @@ config DORY_ESPNOW_BASE_MAC
     default "00:00:00:00:00:00"
 ```
 
-Then parse `CONFIG_DORY_ESPNOW_BASE_MAC` in C at startup. This has a nicer menuconfig UI but requires C-side validation of the `aa:bb:cc:dd:ee:ff` format.
+`parse_base_mac()` converts `CONFIG_DORY_ESPNOW_BASE_MAC` into `s_base_mac[6]` at startup. The format is `aa:bb:cc:dd:ee:ff`.
 
-This replacement has not been implemented yet as of this handoff.
+Dory logs its own STA MAC after Wi-Fi starts:
+
+```c
+ESP_LOGI(TAG, "Dory STA MAC: " MACSTR, MAC2STR(mac));
+```
+
+Use that MAC as the Arduino/base-station target MAC.
 
 ## Kconfig
 
@@ -146,18 +162,18 @@ This replacement has not been implemented yet as of this handoff.
 
 - `DORY_DEBUG_SERIAL`
 - `DORY_WIRELESS`
-- base station MAC byte configs
+- `DORY_ESPNOW_BASE_MAC`
 
-`sdkconfig` currently contains placeholder MAC bytes of `0x00`. Real hardware will reject packets until the base station MAC is configured.
+Real hardware will reject packets until the base station MAC is configured to the sender's STA MAC.
 
 ## Important Implementation Notes
 
 - Do not call hardware functions from the ESP-NOW receive callback.
 - Keep the callback fast: validate pointers, filter MAC, malloc/copy packet bytes, queue event, free on queue failure.
-- The queued data is freed in `dory_com_task` after parsing/handling.
-- `dory_com_get_latest_mission()` returns the most recently received mission.
-- `dory_com_send_result()` sends one `DORY_MSG_RESULT` packet to the configured base station MAC.
+- The queued data is freed in `com_task` after parsing/handling.
+- `send_result()` sends one outbound `DORY_MSG_RESULT` packet to the configured base station MAC.
 - Result sending registers the configured base station as an ESP-NOW peer if needed.
+- Incoming packets currently accept command and mission messages only. Result messages are outbound from Dory.
 - Wi-Fi channel is currently hardcoded to channel 1.
 - `ninja` is not available in this environment; previous verification was static/dry-run only.
 
@@ -171,8 +187,6 @@ This replacement has not been implemented yet as of this handoff.
 
 ## Likely Next Steps
 
-1. Replace the six MAC byte Kconfig options with one `DORY_ESPNOW_BASE_MAC` string.
-2. Add a small parser in `com.c` that converts the string into `s_base_mac[6]`.
-3. Consider rejecting startup or wireless init if the MAC string is malformed.
-4. Later, implement the base station sender in `/Users/evank/code/websites/crush` so it can build `dory_packet_t` packets matching `main/com.h`.
-5. Later, add actual mission runner and depth/I2C sensor logging.
+1. Update any Arduino/base-station sender to build dynamic packets: `packet_header_t + payload + crc`.
+2. Later, implement the base station sender in `/Users/evank/code/websites/crush` so it matches `main/com.h`.
+3. Later, add actual mission runner and depth/I2C sensor logging.
