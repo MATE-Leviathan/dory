@@ -1,0 +1,3 @@
+[submodule "firmware/components/dory_protocol"]
+	path = firmware/components/dory_protocol
+	url = git@github.com:MATE-Leviathan/dory_protocol.git

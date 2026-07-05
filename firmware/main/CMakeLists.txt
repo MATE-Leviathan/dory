@@ -13,4 +13,5 @@ if(CONFIG_DORY_WIRELESS)
 endif()
 
 idf_component_register(SRCS ${srcs}
-                    INCLUDE_DIRS ".")
+                    INCLUDE_DIRS "."
+                    REQUIRES dory_protocol)
