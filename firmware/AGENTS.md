@@ -20,7 +20,7 @@ Important physical constraint: RF does not work underwater. Communication should
 
 - Before the dive: base station sends a complete mission packet to the float.
 - During the dive: the float runs autonomously and logs depth locally.
-- After resurfacing: the float sends depth result data back to the base station.
+- After resurfacing: result reporting is out of scope until explicitly reintroduced.
 
 Keep the system KISS. Avoid feature bloat, multi-packet protocols, retries, encryption, full logs, or mission execution details until the user explicitly asks for them.
 
@@ -57,17 +57,16 @@ Communication files:
 
 The protocol uses dynamically sized ESP-NOW packets. It does not send the whole 1400-byte payload buffer for small commands.
 
-Public protocol definitions are in `main/com.h`:
+Public protocol definitions are in `components/dory_protocol/include/dory_protocol.h`:
 
 - `DORY_PACKET_VERSION`
 - `DORY_MAX_PAYLOAD_LEN = 1400`
-- `DORY_MAX_DEPTH_SAMPLES = 300`
 
 Message types:
 
 - `DORY_MSG_COMMAND`
 - `DORY_MSG_MISSION`
-- `DORY_MSG_RESULT`
+- `DORY_MSG_STATE`
 
 Wire format:
 
@@ -89,22 +88,12 @@ typedef struct __attribute__((packed)) {
 
 CRC is calculated over `header + payload` only. The CRC is appended after the payload and is not included in its own calculation.
 
-`com.c` uses a private parsed packet type with a max-size payload buffer:
-
-```c
-typedef struct {
-    packet_header_t header;
-    uint8_t payload[DORY_MAX_PAYLOAD_LEN];
-} packet_t;
-```
-
-This private `packet_t` is not the wire format. It is only Dory's parsed receive buffer.
+`com.c` uses `dory_packet_view_t` to parse packet headers and point at the received payload bytes.
 
 Payloads:
 
 - `command_payload_t`
-- `mission_payload_t`
-- `result_payload_t`
+- `state_payload_t`
 
 Manual command payloads still support the old manual controls:
 
@@ -114,16 +103,7 @@ Manual command payloads still support the old manual controls:
 - buzzer off
 - leak alarm start/stop
 
-Mission payload currently stores:
-
-- `step_count`
-- `depth_offset_mm`
-
-Result payload currently supports:
-
-- mission time
-- final/min/max depth
-- up to 300 downsampled depth samples
+Mission packets are type-only and carry no payload.
 
 Exact depth sensor/I2C implementation and exact mission runner are not implemented yet and should not be invented unless asked.
 
@@ -171,9 +151,9 @@ Real hardware will reject packets until the base station MAC is configured to th
 - Do not call hardware functions from the ESP-NOW receive callback.
 - Keep the callback fast: validate pointers, filter MAC, malloc/copy packet bytes, queue event, free on queue failure.
 - The queued data is freed in `com_task` after parsing/handling.
-- `send_result()` sends one outbound `DORY_MSG_RESULT` packet to the configured base station MAC.
-- Result sending registers the configured base station as an ESP-NOW peer if needed.
-- Incoming packets currently accept command and mission messages only. Result messages are outbound from Dory.
+- Incoming packets currently accept command and mission messages only.
+- Mission messages must have zero-length payloads and are logged only; they do not start a mission or log depth.
+- `send_state()` sends one outbound `DORY_MSG_STATE` packet to the configured base station MAC after accepted commands.
 - Wi-Fi channel is currently hardcoded to channel 1.
 - `ninja` is not available in this environment; previous verification was static/dry-run only.
 

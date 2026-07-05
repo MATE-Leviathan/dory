@@ -21,6 +21,7 @@
 #include "board/light.h"
 #include "board/servo.h"
 #include "com.h"
+#include "dory_protocol.h"
 
 #define ESPNOW_QUEUE_SIZE 8
 
@@ -125,11 +126,6 @@ static bool handle_command(const command_payload_t *command)
     }
 }
 
-static void handle_mission(const mission_payload_t *mission)
-{
-    ESP_LOGI(TAG, "Received mission: steps=%u depth_offset_mm=%d", mission->step_count, mission->depth_offset_mm);
-}
-
 static void handle_packet(const dory_packet_view_t *packet)
 {
     switch (packet->header.type) {
@@ -150,13 +146,11 @@ static void handle_packet(const dory_packet_view_t *packet)
     }
     case DORY_MSG_MISSION:
     {
-        mission_payload_t mission;
-        if (packet->header.payload_len != sizeof(mission)) {
+        if (packet->header.payload_len != 0) {
             ESP_LOGW(TAG, "Invalid mission payload len: %u", packet->header.payload_len);
             return;
         }
-        memcpy(&mission, packet->payload, sizeof(mission));
-        handle_mission(&mission);
+        ESP_LOGI(TAG, "Received mission packet");
         break;
     }
     default:
@@ -252,21 +246,6 @@ static bool send_state(void)
     }
 
     if (!dory_protocol_encode(DORY_MSG_STATE, &state, sizeof(state), data, sizeof(data))) {
-        return false;
-    }
-
-    return esp_now_send(s_base_mac, data, sizeof(data)) == ESP_OK;
-}
-
-bool send_result(const result_payload_t *result)
-{
-    uint8_t data[sizeof(packet_header_t) + sizeof(*result) + sizeof(uint16_t)];
-
-    if (result == NULL || result->sample_count > DORY_MAX_DEPTH_SAMPLES || !ensure_base_peer()) {
-        return false;
-    }
-
-    if (!dory_protocol_encode(DORY_MSG_RESULT, result, sizeof(*result), data, sizeof(data))) {
         return false;
     }
 
