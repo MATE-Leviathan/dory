@@ -120,6 +120,8 @@ static bool handle_command(const command_payload_t *command)
             buzzer_stop_leak_alarm();
         }
         return true;
+    case DORY_CMD_STATE_REQUEST:
+        return true;
     default:
         ESP_LOGW(TAG, "Unknown command: %u", command->command);
         return false;
