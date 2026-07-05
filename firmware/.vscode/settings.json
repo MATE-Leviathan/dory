@@ -1,10 +1,17 @@
 {
   "idf.currentSetup": "/Users/evank/.espressif/v6.0.2/esp-idf",
-  "idf.customExtraVars": {},
-  "clangd.path": "/home/evank/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "/Users/evank/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=/home/evank/code/kicad/dory/firmware/build"
+    "--compile-commands-dir=/Users/evank/code/robotics/dory/firmware/build"
+  ],
+  "idf.port": "/dev/tty.usbmodem21201",
+  "idf.flashType": "UART",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
   ]
 }
