@@ -1,3 +1,6 @@
 [submodule "firmware/components/dory_protocol"]
 	path = firmware/components/dory_protocol
 	url = git@github.com:MATE-Leviathan/dory_protocol.git
+[submodule "firmware/components/esp-idf-ms5837"]
+	path = firmware/components/esp-idf-ms5837
+	url = git@github.com:MATE-Leviathan/esp-idf-ms5837.git
