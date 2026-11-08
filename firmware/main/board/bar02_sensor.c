@@ -3,6 +3,8 @@
 #include "board_pins.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "ms5837.h"
 
 #define WATER_DENSITY_KG_M3 1000.0f // Ideal Fresh water
@@ -12,12 +14,18 @@ static const char *TAG = "bar02_sensor";
 
 static i2c_master_bus_handle_t s_bus;
 static ms5837_t s_sensor;
+static SemaphoreHandle_t s_read_mutex;
 static float s_surface_pressure_pa;
 
 esp_err_t bar02_sensor_init(void)
 {
     if (s_sensor.device != NULL) {
         return ESP_OK;
+    }
+
+    s_read_mutex = xSemaphoreCreateMutex();
+    if (s_read_mutex == NULL) {
+        return ESP_ERR_NO_MEM;
     }
 
     const i2c_master_bus_config_t bus_config = {
@@ -28,6 +36,8 @@ esp_err_t bar02_sensor_init(void)
     };
     esp_err_t err = i2c_new_master_bus(&bus_config, &s_bus);
     if (err != ESP_OK) {
+        vSemaphoreDelete(s_read_mutex);
+        s_read_mutex = NULL;
         return err;
     }
 
@@ -63,6 +73,8 @@ fail:
     }
     ESP_ERROR_CHECK(i2c_del_master_bus(s_bus));
     s_bus = NULL;
+    vSemaphoreDelete(s_read_mutex);
+    s_read_mutex = NULL;
     return err;
 }
 
@@ -71,8 +83,14 @@ esp_err_t bar02_sensor_read(bar02_sensor_sample_t *sample)
     if (sample == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
+    if (s_sensor.device == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
     ms5837_sample_t measurement;
+    // Serial debug and ESP-NOW must not interleave sensor conversions.
+    xSemaphoreTake(s_read_mutex, portMAX_DELAY);
     esp_err_t err = ms5837_read(&s_sensor, &measurement);
+    xSemaphoreGive(s_read_mutex);
     if (err != ESP_OK) {
         return err;
     }

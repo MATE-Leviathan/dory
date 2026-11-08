@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@
 #include "sdkconfig.h"
 
 #include "board/battery.h"
+#include "board/bar02_sensor.h"
 #include "board/buzzer.h"
 #include "board/light.h"
 #include "board/servo.h"
@@ -290,13 +292,21 @@ static bool send_state(void)
     state_payload_t state = {
         .connected = 1,
         .battery_voltage_mv = (uint16_t)(battery_voltage_read() * 1000.0f),
-        .depth_mm = 0,
+        .depth_mm = INT32_MIN,
         .servo_power = servo_power_is_on(),
         .servo_us = 0,
         .light_on = light_is_on(),
         .leak_alarm_on = buzzer_leak_alarm_is_on(),
     };
     uint8_t data[sizeof(packet_header_t) + sizeof(state) + sizeof(uint16_t)];
+
+    bar02_sensor_sample_t sample;
+    if (bar02_sensor_read(&sample) == ESP_OK) {
+        double depth_mm = round((double)sample.depth_m * 1000.0);
+        if (depth_mm > INT32_MIN && depth_mm <= INT32_MAX) {
+            state.depth_mm = (int32_t)depth_mm;
+        }
+    }
 
     if (!ensure_base_peer()) {
         return false;
