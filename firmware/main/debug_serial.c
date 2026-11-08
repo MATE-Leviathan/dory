@@ -8,6 +8,7 @@
 
 #include "board/battery.h"
 #include "board/buzzer.h"
+#include "board/bar02_sensor.h"
 #include "board/light.h"
 #include "board/servo.h"
 
@@ -17,6 +18,7 @@ static void debug_serial_print_help(void)
     printf("\nDebug serial commands:\n");
     printf("  h - help\n");
     printf("  b - read battery voltage\n");
+    printf("  d - read temperature, pressure, and depth\n");
     printf("  l - toggle light\n");
     printf("  p - toggle servo 5V power\n");
     printf("  z - buzzer tone test\n");
@@ -53,6 +55,18 @@ static void debug_serial_task(void *arg)
         case 'b':
             printf("Battery: %.2f V\n", battery_voltage_read());
             break;
+        case 'd':
+        {
+            bar02_sensor_sample_t sample;
+            esp_err_t err = bar02_sensor_read(&sample);
+            if (err == ESP_OK) {
+                printf("Depth: %.3f m, temperature: %.2f C, pressure: %.1f Pa\n",
+                       sample.depth_m, sample.temperature_c, sample.pressure_pa);
+            } else {
+                printf("Sensor read failed: %s\n", esp_err_to_name(err));
+            }
+            break;
+        }
         case 'l':
         {
             bool light_on = !light_is_on();

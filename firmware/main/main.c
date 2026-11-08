@@ -2,8 +2,10 @@
 #include "freertos/task.h"
 #include "sdkconfig.h"
 #include "nvs_flash.h"
+#include "esp_log.h"
 
 #include "board/battery.h"
+#include "board/bar02_sensor.h"
 #include "board/servo.h"
 #include "board/buzzer.h"
 #include "board/light.h"
@@ -20,6 +22,12 @@ void app_main(void)
     light_set(true);
     buzzer_play_samsung_boot();
     light_set(false);
+
+    esp_err_t sensor_err = bar02_sensor_init();
+    if (sensor_err != ESP_OK) {
+        ESP_LOGW("main", "Bar02 sensor unavailable: %s", esp_err_to_name(sensor_err));
+        buzzer_play_sensor_missing();
+    }
 
 #ifdef CONFIG_DORY_DEBUG_SERIAL
     debug_serial_start();

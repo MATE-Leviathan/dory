@@ -29,6 +29,13 @@ static const int starting_beeps[][2] = {
     {4000, 350},
 };
 
+static const int sensor_missing[][2] = {
+    {2000, 400},
+    {0, 400},
+    {2000, 400},
+    {0, 800},
+};
+
 static const int leak_alarm[][2] = {
     {2800, 90},
     {0, 60},
@@ -110,6 +117,12 @@ void buzzer_play_starting_beeps(void)
 {
     ESP_LOGI(TAG, "Playing starting beeps");
     buzzer_play_pattern(starting_beeps, ARRAY_LEN(starting_beeps));
+}
+
+void buzzer_play_sensor_missing(void)
+{
+    ESP_LOGI(TAG, "Playing sensor missing pattern");
+    buzzer_play_pattern(sensor_missing, ARRAY_LEN(sensor_missing));
 }
 
 static void leak_alarm_task(void *arg)

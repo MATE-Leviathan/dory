@@ -8,6 +8,8 @@
 #define BATT_ADC_CHANNEL ADC_CHANNEL_3
 #define LIGHT_PIN GPIO_NUM_9
 #define BUZZER_PIN GPIO_NUM_48
+#define SDA1 GPIO_NUM_10
+#define SCL1 GPIO_NUM_11
 
 // 220k and 100k voltage divider
 #define BATT_DIVIDER_MULTIPLIER 3.2f

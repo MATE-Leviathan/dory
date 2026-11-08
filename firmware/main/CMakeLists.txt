@@ -1,5 +1,6 @@
 set(srcs "main.c"
          "board/battery.c"
+         "board/bar02_sensor.c"
          "board/servo.c"
          "board/buzzer.c"
          "board/light.c")
