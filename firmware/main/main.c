@@ -17,6 +17,10 @@ void app_main(void)
     buzzer_init();
     battery_init();
 
+    light_set(true);
+    buzzer_play_samsung_boot();
+    light_set(false);
+
 #ifdef CONFIG_DORY_DEBUG_SERIAL
     debug_serial_start();
 #endif
@@ -32,10 +36,6 @@ void app_main(void)
 
     init_com();
 #endif
-
-    light_set(true);
-    buzzer_play_samsung_boot();
-    light_set(false);
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));

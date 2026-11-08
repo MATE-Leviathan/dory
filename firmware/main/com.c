@@ -24,6 +24,9 @@
 #include "dory_protocol.h"
 
 #define ESPNOW_QUEUE_SIZE 8
+#define CONNECTION_BEEP_ON_MS 100
+#define CONNECTION_BEEP_OFF_MS 900
+#define CONNECTION_TIMEOUT_MS 5000
 
 static const char *TAG = "com";
 
@@ -165,14 +168,66 @@ static void com_task(void *arg)
 {
     espnow_event_t evt;
     dory_packet_view_t packet;
+    bool base_connected = false;
+    bool beep_on = true;
+    TickType_t phase_start = xTaskGetTickCount();
+    TickType_t last_packet_tick = phase_start;
+    TickType_t phase_duration = pdMS_TO_TICKS(CONNECTION_BEEP_ON_MS);
 
     (void)arg;
 
-    while (xQueueReceive(s_espnow_queue, &evt, portMAX_DELAY) == pdTRUE) {
+    light_set(true);
+    buzzer_tone(4000);
+
+    while (1) {
+        TickType_t now = xTaskGetTickCount();
+        TickType_t wait = pdMS_TO_TICKS(CONNECTION_TIMEOUT_MS);
+        if (base_connected) {
+            TickType_t since_packet = now - last_packet_tick;
+            if (since_packet >= pdMS_TO_TICKS(CONNECTION_TIMEOUT_MS)) {
+                base_connected = false;
+                beep_on = true;
+                phase_start = now;
+                phase_duration = pdMS_TO_TICKS(CONNECTION_BEEP_ON_MS);
+                light_set(true);
+                buzzer_tone(4000);
+                ESP_LOGW(TAG, "Base station timed out; restarting connection beeps and flashes");
+            } else {
+                wait -= since_packet;
+            }
+        }
+        if (!base_connected) {
+            TickType_t elapsed = xTaskGetTickCount() - phase_start;
+            if (elapsed >= phase_duration) {
+                beep_on = !beep_on;
+                light_set(beep_on);
+                if (beep_on) {
+                    buzzer_tone(4000);
+                } else {
+                    buzzer_off();
+                }
+                phase_start = xTaskGetTickCount();
+                phase_duration = pdMS_TO_TICKS(beep_on ? CONNECTION_BEEP_ON_MS : CONNECTION_BEEP_OFF_MS);
+                elapsed = 0;
+            }
+            wait = phase_duration - elapsed;
+        }
+
+        if (xQueueReceive(s_espnow_queue, &evt, wait) != pdTRUE) {
+            continue;
+        }
         ESP_LOGI(TAG, "Received ESP-NOW packet: len=%d", evt.data_len);
 
         if (dory_protocol_parse(evt.data, evt.data_len, &packet) &&
-            (packet.header.type == DORY_MSG_COMMAND || packet.header.type == DORY_MSG_MISSION)) {
+            ((packet.header.type == DORY_MSG_COMMAND && packet.header.payload_len == sizeof(command_payload_t)) ||
+             (packet.header.type == DORY_MSG_MISSION && packet.header.payload_len == 0))) {
+            last_packet_tick = xTaskGetTickCount();
+            if (!base_connected) {
+                base_connected = true;
+                buzzer_off();
+                light_set(false);
+                ESP_LOGI(TAG, "Base station found; stopping connection beeps and flashes");
+            }
             handle_packet(&packet);
         } else {
             ESP_LOGW(TAG, "Invalid packet from base station");
@@ -211,7 +266,7 @@ void init_com(void) {
     ESP_ERROR_CHECK( esp_now_init() );
     ESP_ERROR_CHECK( esp_now_register_recv_cb(espnow_recv_cb) );
 
-    xTaskCreate(com_task, "com", 4096, NULL, 5, NULL);
+    ESP_ERROR_CHECK(xTaskCreate(com_task, "com", 4096, NULL, 5, NULL) == pdPASS ? ESP_OK : ESP_ERR_NO_MEM);
 }
 
 static bool ensure_base_peer(void)
